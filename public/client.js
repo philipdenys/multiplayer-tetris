@@ -35,10 +35,12 @@ class Tetris {
 
         this.otherPlayers = {};
 
+        this.isRunning = false; // New flag to control the game state
+
         this.initUI();
-        this.playerReset();
-        this.updateScore();
-        this.update();
+        // this.playerReset(); // Remove this line
+        // this.updateScore(); // Remove this line
+        // this.update(); // Remove this line
     }
 
     initUI() {
@@ -46,6 +48,28 @@ class Tetris {
         this.scoreElem = this.element.querySelector('.score');
         // Add game over display
         this.gameOverElem = this.element.querySelector('.game-over');
+
+        // Add start button
+        this.startButton = document.createElement('button');
+        this.startButton.classList.add('start-button');
+        this.startButton.innerText = 'Start Game';
+        this.element.appendChild(this.startButton);
+
+        // Event listener for start button
+        this.startButton.addEventListener('click', () => {
+            this.startButton.style.display = 'none';
+            this.gameOverElem.style.display = 'none';
+            this.isRunning = true;
+            this.playerReset();
+            this.updateScore();
+            this.update();
+        });
+
+        // Modify game over click event to show start button
+        this.gameOverElem.addEventListener('click', () => {
+            this.gameOverElem.style.display = 'none';
+            this.startButton.style.display = 'block';
+        });
     }
 
     createMatrix(w, h) {
@@ -126,7 +150,9 @@ class Tetris {
             this.player.level = 0;
             this.updateScore();
             this.gameOver = true;
+            this.isRunning = false; // Stop the game loop
             this.gameOverElem.style.display = 'block';
+            this.sendStateUpdate(); // Notify others of the game over state
         }
     }
 
@@ -261,7 +287,7 @@ class Tetris {
     }
 
     update(time = 0) {
-        if (this.gameOver) return;
+        if (!this.isRunning) return; // Check if the game is running
 
         const deltaTime = time - this.lastTime;
         this.lastTime = time;
