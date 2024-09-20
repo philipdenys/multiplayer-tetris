@@ -32,7 +32,8 @@ class Tetris {
         this.lastTime = 0;
 
         this.gameOver = false;
-
+        this.nextPiece = null; // New property for the next piece
+        this.isRunning = true; // Initialize isRunning
         this.otherPlayers = {};
 
         this.initUI();
@@ -46,6 +47,22 @@ class Tetris {
         this.scoreElem = this.element.querySelector('.score');
         // Add game over display
         this.gameOverElem = this.element.querySelector('.game-over');
+        // Create next piece display
+        this.nextPieceElem = document.createElement('div');
+        this.nextPieceElem.classList.add('next-piece');
+
+        const nextLabel = document.createElement('div');
+        nextLabel.innerText = 'Next Piece';
+        this.nextPieceElem.appendChild(nextLabel);
+
+        this.nextCanvas = document.createElement('canvas');
+        this.nextCanvas.width = 80; // Adjust size as needed
+        this.nextCanvas.height = 80;
+        this.nextContext = this.nextCanvas.getContext('2d');
+        this.nextContext.scale(20, 20); // Same scaling factor
+        this.nextPieceElem.appendChild(this.nextCanvas);
+
+        this.element.appendChild(this.nextPieceElem);
     }
 
     createMatrix(w, h) {
@@ -74,7 +91,7 @@ class Tetris {
         this.drawMatrix(this.arena, { x: 0, y: 0 });
         this.drawMatrix(this.player.matrix, this.player.pos);
 
-        // Draw other players
+        // Draw other players (if implemented)
         for (let id in this.otherPlayers) {
             if (id !== this.playerId) {
                 const opponent = this.otherPlayers[id];
@@ -82,6 +99,24 @@ class Tetris {
             }
         }
     }
+
+    drawNext() {
+        this.nextContext.fillStyle = '#000';
+        this.nextContext.fillRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
+
+        const matrix = this.nextPiece;
+        const offset = { x: 1, y: 1 }; // Center the piece in the canvas
+
+        matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    this.nextContext.fillStyle = this.colors[value];
+                    this.nextContext.fillRect(x + offset.x, y + offset.y, 1, 1);
+                }
+            });
+        });
+    }
+
 
     merge(arena, player) {
         player.matrix.forEach((row, y) => {
@@ -110,10 +145,25 @@ class Tetris {
     }
 
     playerReset() {
-        const pieces = 'TJLOSZI';
-        this.player.matrix = this.createPiece(
-            pieces[(pieces.length * Math.random()) | 0]
-        );
+        if (this.nextPiece === null) {
+            // If nextPiece is not set, generate both current and next pieces
+            const pieces = 'TJLOSZI';
+            this.player.matrix = this.createPiece(
+                pieces[(pieces.length * Math.random()) | 0]
+            );
+            this.nextPiece = this.createPiece(
+                pieces[(pieces.length * Math.random()) | 0]
+            );
+        } else {
+            // Set the current piece to be the next piece
+            this.player.matrix = this.nextPiece;
+            // Generate a new next piece
+            const pieces = 'TJLOSZI';
+            this.nextPiece = this.createPiece(
+                pieces[(pieces.length * Math.random()) | 0]
+            );
+        }
+
         this.player.pos.y = 0;
         this.player.pos.x =
             ((this.arena[0].length / 2) | 0) -
@@ -126,9 +176,16 @@ class Tetris {
             this.player.level = 0;
             this.updateScore();
             this.gameOver = true;
+            this.isRunning = false;
             this.gameOverElem.style.display = 'block';
+
         }
+
+        // After setting the next piece, draw it
+        this.drawNext();
+        this.sendStateUpdate(); // Send initial state update
     }
+
 
     createPiece(type) {
         if (type === 'T') {
@@ -259,9 +316,8 @@ class Tetris {
     updateScore() {
         this.scoreElem.innerText = `Score: ${this.player.score}\nLines: ${this.player.lines}\nLevel: ${this.player.level}`;
     }
-
     update(time = 0) {
-        if (this.gameOver) return;
+        if (!this.isRunning) return;
 
         const deltaTime = time - this.lastTime;
         this.lastTime = time;
@@ -280,6 +336,7 @@ class Tetris {
             pos: this.player.pos,
             matrix: this.player.matrix,
             score: this.player.score,
+            nextPiece: this.nextPiece, // Include nextPiece
         };
         this.ws.send(
             JSON.stringify({
@@ -293,6 +350,7 @@ class Tetris {
     receiveStateUpdate(playerId, state) {
         this.otherPlayers[playerId] = state;
     }
+
 
     removePlayer(playerId) {
         delete this.otherPlayers[playerId];
@@ -327,6 +385,7 @@ ws.onmessage = (event) => {
         gameArea.appendChild(playerElement);
 
         tetris = new Tetris(playerElement, playerId, ws);
+        tetris.update(); // Start the game loop
 
         // Input handling
         document.addEventListener('keydown', (event) => {
