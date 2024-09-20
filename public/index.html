@@ -3,44 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Enhanced Multiplayer Tetris</title>
-    <style>
-        body {
-            background-color: #1a1a1a;
-            color: #fff;
-            font-family: Arial, sans-serif;
-            display: flex;
-        }
-        #gameArea {
-            display: flex;
-            margin: auto;
-            align-items: flex-start;
-        }
-        .game {
-            margin: 10px;
-            position: relative;
-        }
-        canvas {
-            border: 1px solid #333;
-            background-color: #000;
-        }
-        .score {
-            position: absolute;
-            top: 0;
-            left: 0;
-            padding: 5px;
-            font-size: 1em;
-            background: rgba(0, 0, 0, 0.5);
-        }
-        .game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 2em;
-            color: red;
-            display: none;
-        }
-    </style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="gameArea">
