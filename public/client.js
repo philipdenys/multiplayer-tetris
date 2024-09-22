@@ -1,5 +1,6 @@
 class Tetris {
     constructor(element, playerId, ws) {
+        this.startTime = new Date();
         this.playerId = playerId;
         this.ws = ws;
 
@@ -39,6 +40,10 @@ class Tetris {
         this.playerReset();
         this.updateScore();
         this.update();
+
+        this.name = '';
+        this.stats = [];
+
     }
 
     initUI() {
@@ -120,6 +125,8 @@ class Tetris {
             ((this.player.matrix[0].length / 2) | 0);
 
         if (this.collide(this.arena, this.player)) {
+            const finalScore = this.player.score; // Store the current score
+            const finalLines = this.player.lines; // Store the current lines
             this.arena.forEach((row) => row.fill(0));
             this.player.score = 0;
             this.player.lines = 0;
@@ -127,7 +134,42 @@ class Tetris {
             this.updateScore();
             this.gameOver = true;
             this.gameOverElem.style.display = 'block';
+            this.saveStats(finalScore, finalLines); // Pass the final score and lines to saveStats
         }
+    }
+    saveStats(finalScore, finalLines) {
+        const now = new Date();
+        const stats = {
+            date: now.toLocaleDateString(),
+            timePlayed: this.getTimePlayed(),
+            name: this.name,
+            linesCompleted: finalLines, // Use the final lines value
+            score: finalScore, // Use the final score value
+            level: this.player.level,
+        };
+        this.stats.push(stats);
+        console.log('Stats saved:', stats);
+
+        // Create a blob with the stats data
+        const blob = new Blob([JSON.stringify(this.stats, null, 2)], { type: 'application/json' });
+
+        // Create a link to download the file
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tetris-stats-${now.toLocaleDateString()}.json`;
+        a.click();
+
+        // Remove the link and blob
+        URL.revokeObjectURL(url);
+        a.remove();
+    }
+
+    getTimePlayed() {
+        const startTime = this.startTime || new Date();
+        const endTime = new Date();
+        const timePlayed = (endTime - startTime) / 1000;
+        return timePlayed.toFixed(2) + ' seconds';
     }
 
     createPiece(type) {
@@ -348,6 +390,12 @@ ws.onmessage = (event) => {
                 // W key
                 tetris.playerRotate(1);
             }
+        });
+
+        // Get the player's name
+        const nameInput = document.getElementById('name-input');
+        nameInput.addEventListener('input', (event) => {
+            tetris.name = event.target.value.trim(); // Update the name property
         });
 
         // Restart game on game over
